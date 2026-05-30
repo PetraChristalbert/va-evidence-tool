@@ -5,18 +5,10 @@ This tool does all the heavy lifting for you. You give it a Veteran's Memorandum
 
 ---
 
-## 🛠️ Step 1: One-Time Setup (Do this only once!)
+## 🛠️ Step 1: One-Time Setup (Ghostscript)
 
-Before you can use this tool, your computer needs two standard programs installed. You only have to do this once.
+Before you can use this tool, your computer needs a standard PDF compressor called **Ghostscript**. You only have to do this once. (The tool will automatically handle installing its own private Node.js engine for you).
 
-### 1. Install Node.js (The Engine)
-This is the engine that runs the tool.
-* Go to the official website: [Download Node.js here](https://nodejs.org/en/download/)
-* Click the big green button that says **"LTS"** (Recommended for most users).
-* Open the downloaded file and click "Next" through the installer until it finishes.
-
-### 2. Install Ghostscript (The PDF Compressor)
-This shrinks the final PDFs so they are small enough (under 10MB) to upload to the VA system.
 * **Windows Users:** Go to the [Ghostscript Download Page](https://ghostscript.com/releases/gsdnld.html), download the "Ghostscript AGPL Release" for Windows (64-bit), and click "Next" through the installer.
 * **Mac Users:** Open your "Terminal" app and type `brew install ghostscript`, then press Enter.
 
@@ -31,7 +23,7 @@ You do not need to know any code to run this. Just follow these steps:
 3. **Run It:**
    * **If you are on Windows:** Double-click the file named `run_windows.bat`. 
    * **If you are on Mac/Linux:** Double-click the file named `run_mac_linux.sh` (or open a terminal in that folder and type `sh run_mac_linux.sh`).
-4. **Wait a moment:** A black box (terminal) will pop up. It will automatically install everything it needs. 
+4. **Wait a moment:** A black box (terminal) will pop up. **On the very first run**, it will automatically download its own private copy of the Node.js engine and the Google Chrome background worker. (It might take 1-2 minutes).
 5. **Open the Website:** Your web browser will automatically open to `http://localhost:5000`. This is your private, secure, local workspace!
 
 *(Note: Keep the black terminal box open while you are using the app. When you are done for the day, just close the black box to turn the app off).*

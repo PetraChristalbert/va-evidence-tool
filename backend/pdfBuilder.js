@@ -1,5 +1,6 @@
 const { PDFDocument, rgb } = require('pdf-lib');
 const fs = require('fs');
+const path = require('path');
 const { exec } = require('child_process');
 
 async function compressPdfIfLarge(filePath) {
@@ -11,8 +12,15 @@ async function compressPdfIfLarge(filePath) {
             if (fileSizeMB > 9.5) { // Threshold at 9.5MB to be safe
                 console.log(`PDF size is ${fileSizeMB.toFixed(2)}MB (over 10MB limit). Compressing...`);
                 const tempPath = filePath + '.tmp.pdf';
+                // Check if portable Windows Ghostscript exists
+                const gsPortablePath = path.join(__dirname, '../../bin/gs/gswin64c.exe');
+                let gsExecutable = 'gs'; // default for Mac/Linux/Global
+                if (fs.existsSync(gsPortablePath)) {
+                    gsExecutable = `"${gsPortablePath}"`;
+                }
+
                 // /ebook is 150dpi - good balance of quality and size
-                const gsCmd = `gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook -dNOPAUSE -dQUIET -dBATCH -sOutputFile="${tempPath}" "${filePath}"`;
+                const gsCmd = `${gsExecutable} -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook -dNOPAUSE -dQUIET -dBATCH -sOutputFile="${tempPath}" "${filePath}"`;
                 
                 exec(gsCmd, (error) => {
                     if (error) {
