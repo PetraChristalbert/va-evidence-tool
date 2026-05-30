@@ -5,16 +5,7 @@ This tool does all the heavy lifting for you. You give it a Veteran's Memorandum
 
 ---
 
-## 🛠️ Step 1: One-Time Setup (Ghostscript)
-
-Before you can use this tool, your computer needs a standard PDF compressor called **Ghostscript**. You only have to do this once. (The tool will automatically handle installing its own private Node.js engine for you).
-
-* **Windows Users:** Go to the [Ghostscript Download Page](https://ghostscript.com/releases/gsdnld.html), download the "Ghostscript AGPL Release" for Windows (64-bit), and click "Next" through the installer.
-* **Mac Users:** Open your "Terminal" app and type `brew install ghostscript`, then press Enter.
-
----
-
-## 🚀 Step 2: How to Start the App
+## 🚀 Step 1: How to Start the App
 
 You do not need to know any code to run this. Just follow these steps:
 
@@ -30,7 +21,7 @@ You do not need to know any code to run this. Just follow these steps:
 
 ---
 
-## 📖 Step 3: How to Use the App
+## 📖 Step 2: How to Use the App
 
 1. **Upload Documents:** Drag and drop your blank Evidence Summary Form (ESF) into the first box. Drag the Veteran's Memorandum into the second box.
 2. **Review the Data:** The app will automatically read the memorandum. It will show you the Veteran's Name, SSN, and the medical conditions it found. Make sure they are correct.

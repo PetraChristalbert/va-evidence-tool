@@ -1,49 +1,6 @@
 const { PDFDocument, rgb } = require('pdf-lib');
 const fs = require('fs');
 const path = require('path');
-const { exec } = require('child_process');
-
-async function compressPdfIfLarge(filePath) {
-    return new Promise((resolve) => {
-        try {
-            const stats = fs.statSync(filePath);
-            const fileSizeMB = stats.size / (1024 * 1024);
-            
-            if (fileSizeMB > 9.5) { // Threshold at 9.5MB to be safe
-                console.log(`PDF size is ${fileSizeMB.toFixed(2)}MB (over 10MB limit). Compressing...`);
-                const tempPath = filePath + '.tmp.pdf';
-                // Check if portable Windows Ghostscript exists
-                const gsPortablePath = path.join(__dirname, '../../bin/gs/gswin64c.exe');
-                let gsExecutable = 'gs'; // default for Mac/Linux/Global
-                if (fs.existsSync(gsPortablePath)) {
-                    gsExecutable = `"${gsPortablePath}"`;
-                }
-
-                // /ebook is 150dpi - good balance of quality and size
-                const gsCmd = `${gsExecutable} -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dPDFSETTINGS=/ebook -dNOPAUSE -dQUIET -dBATCH -sOutputFile="${tempPath}" "${filePath}"`;
-                
-                exec(gsCmd, (error) => {
-                    if (error) {
-                        console.error('Ghostscript compression failed:', error);
-                        // If it fails, just keep the original file and don't break the pipeline
-                        if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
-                        return resolve(false);
-                    }
-                    // Overwrite original with compressed
-                    fs.renameSync(tempPath, filePath);
-                    const newStats = fs.statSync(filePath);
-                    console.log(`Successfully compressed PDF to ${(newStats.size / (1024 * 1024)).toFixed(2)}MB`);
-                    resolve(true);
-                });
-            } else {
-                resolve(false);
-            }
-        } catch (e) {
-            console.error('Error during compression check:', e);
-            resolve(false);
-        }
-    });
-}
 
 async function buildConditionPacket(esfPath, researchPdfPaths, outputPath, vetName, condition, ssn) {
     try {
@@ -117,9 +74,6 @@ async function buildConditionPacket(esfPath, researchPdfPaths, outputPath, vetNa
         // Save the merged document
         const mergedPdfBytes = await finalDoc.save();
         fs.writeFileSync(outputPath, mergedPdfBytes);
-        
-        // Final compression step if over 10MB limit
-        await compressPdfIfLarge(outputPath);
         
         return true;
     } catch (error) {
