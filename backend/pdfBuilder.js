@@ -25,6 +25,9 @@ async function buildConditionPacket(esfPath, researchPdfPaths, outputPath, vetNa
                 try { form.getTextField(`F[0].#subform[1].Date_Signed_Day[${i}]`).setText(dd); } catch(e){}
                 try { form.getTextField(`F[0].#subform[1].Date_Signed_Year[${i}]`).setText(yyyy); } catch(e){}
             }
+            
+            // Flatten the form to bake the values visually into the page
+            form.flatten();
         } catch (e) {
             console.error('Failed to fill ESF form fields:', e);
             // Fallback manual draw
