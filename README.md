@@ -1,80 +1,48 @@
-# VA Medical Evidence Processing Platform
+# VA Medical Evidence Packet Builder
+**A simple tool for office workers to automatically generate medical research packets.**
 
-A localized, full-stack application designed to automatically generate **medical evidence packets** for veterans. This tool streamlines the process of filling out Evidence Summary Forms (ESF), retrieving medical research, and stitching everything together into professional, compressed PDF packets.
-
-## 🚀 Features
-
-- **Automated ESF Filling:** Automatically checks the appropriate boxes and fills condition-specific descriptions on the official Evidence Summary Form.
-- **Smart PDF Extraction:** Automatically parses Veteran details (Name, SSN) and medical conditions from an uploaded `.docx` or `.pdf` memorandum.
-- **Web Scraping & CAPTCHA Evasion:** Uses an interactive headful browser to pull medical research from URLs. If a CAPTCHA is hit, the UI pauses and allows the user to solve it manually in the browser window before resuming.
-- **PDF Stamping & Compression:** Stamps the Veteran's Full Name and SSN on the top-right corner of every research page. The final merged PDF is automatically compressed using Ghostscript if it exceeds 10MB.
-- **Local First:** Operates entirely on your local machine using an internal Node.js queue system. No cloud database or Redis required.
+This tool does all the heavy lifting for you. You give it a Veteran's Memorandum, and it automatically reads their name, SSN, and medical conditions. It then downloads the required medical research and stitches it together into a single, clean PDF that is ready to submit.
 
 ---
 
-## 💻 Prerequisites
+## 🛠️ Step 1: One-Time Setup (Do this only once!)
 
-To run this tool, you must have two pieces of software installed on your computer:
+Before you can use this tool, your computer needs two standard programs installed. You only have to do this once.
 
-### 1. Node.js (Application Runtime)
-- **Windows / Mac / Linux:** Download the official LTS installer from [Node.js Official Website](https://nodejs.org/).
+### 1. Install Node.js (The Engine)
+This is the engine that runs the tool.
+* Go to the official website: [Download Node.js here](https://nodejs.org/en/download/)
+* Click the big green button that says **"LTS"** (Recommended for most users).
+* Open the downloaded file and click "Next" through the installer until it finishes.
 
-### 2. Ghostscript (PDF Compression Engine)
-- **Windows:** 
-  - Download the installer from the [Ghostscript Downloads Page](https://ghostscript.com/releases/gsdnld.html). 
-  - *Or via Chocolatey:* `choco install ghostscript`
-- **Mac:**
-  - *Via Homebrew:* `brew install ghostscript`
-- **Linux:**
-  - *Ubuntu/Debian:* `sudo apt-get install ghostscript`
-  - *Arch:* `sudo pacman -S ghostscript`
+### 2. Install Ghostscript (The PDF Compressor)
+This shrinks the final PDFs so they are small enough (under 10MB) to upload to the VA system.
+* **Windows Users:** Go to the [Ghostscript Download Page](https://ghostscript.com/releases/gsdnld.html), download the "Ghostscript AGPL Release" for Windows (64-bit), and click "Next" through the installer.
+* **Mac Users:** Open your "Terminal" app and type `brew install ghostscript`, then press Enter.
 
 ---
 
-## 🛠️ Installation & Running
+## 🚀 Step 2: How to Start the App
 
-This application is built as a self-contained monolith. The frontend and backend boot together automatically.
+You do not need to know any code to run this. Just follow these steps:
 
-1. **Clone or Download the Repository:**
-   Download this project to your computer and unzip it.
+1. **Download this Tool:** Click the green **"Code"** button at the top right of this GitHub page, and select **"Download ZIP"**.
+2. **Unzip it:** Extract the folder to somewhere you can easily find it, like your Desktop.
+3. **Run It:**
+   * **If you are on Windows:** Double-click the file named `run_windows.bat`. 
+   * **If you are on Mac/Linux:** Double-click the file named `run_mac_linux.sh` (or open a terminal in that folder and type `sh run_mac_linux.sh`).
+4. **Wait a moment:** A black box (terminal) will pop up. It will automatically install everything it needs. 
+5. **Open the Website:** Your web browser will automatically open to `http://localhost:5000`. This is your private, secure, local workspace!
 
-2. **Open Terminal / Command Prompt:**
-   Navigate into the project folder using your terminal:
-   ```bash
-   cd path/to/va-evidence-tool
-   ```
-
-3. **Install Dependencies (One-time only):**
-   Run the following command to install all necessary packages and build the frontend interface:
-   ```bash
-   npm install
-   ```
-
-4. **Start the Application:**
-   Run the following command to boot up the platform:
-   ```bash
-   npm start
-   ```
-
-5. **Open the Website:**
-   Once the terminal says `🚀 VA Evidence Monolith running on port 5000`, open your web browser and go to:
-   👉 **http://localhost:5000**
+*(Note: Keep the black terminal box open while you are using the app. When you are done for the day, just close the black box to turn the app off).*
 
 ---
 
-## 📖 How to Use
+## 📖 Step 3: How to Use the App
 
-1. **Upload Documents:** Drop a blank `.pdf` Evidence Summary Form (ESF) into the first box. Optionally, drop a Veteran Memorandum into the second box (the system will attempt to automatically read the Veteran's Name, SSN, and Conditions from it).
-2. **Confirm Details:** The system will present the extracted data. You can manually adjust the Veteran Name, SSN, and add/remove specific conditions.
-3. **Add Research:** For each condition, you can either upload your own local PDF files or paste URLs to medical research pages (e.g., PubMed).
-4. **Generate Packets:** Click "Generate Packets". The system will begin downloading research and merging PDFs.
-5. **Handling CAPTCHAs:** If a website blocks the download with a CAPTCHA, a Chrome browser window will pop up. Solve the CAPTCHA in the window, and then click **"I Have Solved the CAPTCHA! Continue"** in the web interface to resume the process.
-6. **Download Final Packets:** Once completed, click the "Download" buttons to save the finalized, fully stamped, and compressed PDF packets!
-
----
-
-## ⚙️ Architecture Notes
-* **Backend:** Express.js (Port 5000)
-* **Frontend:** React + Vite + Tailwind CSS (Compiled to static files)
-* **Web Scraper:** Playwright (Headed Mode)
-* **PDF Engine:** pdf-lib + Ghostscript
+1. **Upload Documents:** Drag and drop your blank Evidence Summary Form (ESF) into the first box. Drag the Veteran's Memorandum into the second box.
+2. **Review the Data:** The app will automatically read the memorandum. It will show you the Veteran's Name, SSN, and the medical conditions it found. Make sure they are correct.
+3. **Add Links:** For each condition, paste the URL link to the medical research (like a PubMed article). 
+4. **Generate:** Click the big "Generate Packets" button.
+5. **Security Checks (CAPTCHAs):** If a website thinks you are a robot and throws up a "Verify you are human" check, a Chrome window will pop up. Just click the checkbox in that window to prove you are human, and then click the green **"I Have Solved the CAPTCHA"** button in our app to continue!
+6. **Download:** When it finishes, click the Download button next to each condition to get your fully-stamped, compressed PDF packet.
