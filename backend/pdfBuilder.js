@@ -1,4 +1,4 @@
-const { PDFDocument, rgb } = require('pdf-lib');
+const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 const fs = require('fs');
 const path = require('path');
 
@@ -12,6 +12,19 @@ async function buildConditionPacket(esfPath, researchPdfPaths, outputPath, vetNa
             const form = esfDoc.getForm();
             form.getCheckBox('F[0].#subform[1].#field[66]').check();
             form.getTextField('F[0].#subform[1].Other_Describe[0]').setText(`${condition} Research Document Attached`);
+            
+            // Set Date Signed
+            const today = new Date();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            const yyyy = String(today.getFullYear());
+            
+            // Attempt to fill all signature date fields to be safe (indices 0, 1, 2)
+            for (let i = 0; i < 3; i++) {
+                try { form.getTextField(`F[0].#subform[1].Date_Signed_Month[${i}]`).setText(mm); } catch(e){}
+                try { form.getTextField(`F[0].#subform[1].Date_Signed_Day[${i}]`).setText(dd); } catch(e){}
+                try { form.getTextField(`F[0].#subform[1].Date_Signed_Year[${i}]`).setText(yyyy); } catch(e){}
+            }
         } catch (e) {
             console.error('Failed to fill ESF form fields:', e);
             // Fallback manual draw
@@ -56,17 +69,23 @@ async function buildConditionPacket(esfPath, researchPdfPaths, outputPath, vetNa
         
         const headerText = `${lastName.toUpperCase()} ${firstName.toUpperCase()} ${middleName.toUpperCase()} | SSN: ${formattedSsn}`;
 
+        // Embed a standard font to measure text width
+        const font = await finalDoc.embedFont(StandardFonts.Helvetica);
+        const fontSize = 10;
+        const textWidth = font.widthOfTextAtSize(headerText, fontSize);
+
         // Add Header to Research PDFs (Skip ESF pages)
         const totalPages = finalDoc.getPageCount();
         for (let i = esfPagesCount; i < totalPages; i++) {
             const p = finalDoc.getPage(i);
             const { width, height } = p.getSize();
             // Half the spacing to the top (was height - 30 -> height - 15)
-            // Half the spacing to the right (was width - 250 -> width - 180 to push it closer to the right edge)
+            // Exactly 30 points from the right edge, calculating based on string width
             p.drawText(headerText, {
-                x: width - 180,
+                x: width - textWidth - 30,
                 y: height - 15,
-                size: 10,
+                size: fontSize,
+                font: font,
                 color: rgb(0, 0, 0)
             });
         }
