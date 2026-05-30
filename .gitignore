@@ -1,0 +1,8 @@
+node_modules/
+client/node_modules/
+backend/uploads/
+backend/output/
+backend/real_browser_profile/
+client/dist/
+.env
+.DS_Store
