@@ -84,6 +84,19 @@ async function buildConditionPacket(esfPath, researchPdfPaths, outputPath, vetNa
                 console.log(`[Note] Failed to draw checkbox X: ${e.message}`);
             }
 
+            // Strip all signature fields before flattening.
+            // pdf-lib does not flatten PDFSignature fields, leaving them active in Adobe Acrobat.
+            try {
+                const fields = form.getFields();
+                fields.forEach(field => {
+                    if (field.constructor.name === 'PDFSignature') {
+                        form.removeField(field);
+                    }
+                });
+            } catch(e) {
+                console.log(`[Note] Failed to strip signature fields: ${e.message}`);
+            }
+
             // Flatten the form to bake the values visually into the page
             try {
                 form.flatten();
@@ -152,6 +165,13 @@ async function buildConditionPacket(esfPath, researchPdfPaths, outputPath, vetNa
         // Ensure the final merged document is completely flattened (static)
         try {
             const finalForm = finalDoc.getForm();
+            // Also strip any signature fields that might have snuck in from research PDFs
+            const finalFields = finalForm.getFields();
+            finalFields.forEach(field => {
+                if (field.constructor.name === 'PDFSignature') {
+                    finalForm.removeField(field);
+                }
+            });
             finalForm.flatten();
         } catch (e) {
             console.log(`[Note] Failed to flatten final merged document: ${e.message}`);

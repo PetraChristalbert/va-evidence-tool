@@ -169,10 +169,10 @@ async function downloadResearch(url, outputDir, jobId, jobs) {
         await page.waitForTimeout(3000);
 
         const pageTitle = await page.title();
-        const content = await page.content();
+        const textContent = await page.evaluate(() => document.body ? document.body.innerText : '');
         
-        const captchaKeywords = ['Just a moment...', 'Attention Required!', 'verify you are human', 'Cloudflare', 'Are you a robot', 'Access Denied', 'Security Measure', 'Suspicious activity', 'Checking your browser', 'challenges.cloudflare.com'];
-        let hitCaptcha = captchaKeywords.some(kw => pageTitle.toLowerCase().includes(kw.toLowerCase()) || content.toLowerCase().includes(kw.toLowerCase()));
+        const captchaKeywords = ['Just a moment...', 'verify you are human', 'Are you a robot', 'Checking your browser', 'Attention Required!'];
+        let hitCaptcha = captchaKeywords.some(kw => pageTitle.toLowerCase().includes(kw.toLowerCase()) || textContent.toLowerCase().includes(kw.toLowerCase()));
 
         if (hitCaptcha) {
             jobs[jobId].stage = 'downloading'; jobs[jobId].message = `CAPTCHA Detected! Please solve it in the Chrome window. Waiting 10m...`;
