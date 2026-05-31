@@ -113,10 +113,7 @@ async function buildConditionPacket(esfPath, researchPdfPaths, outputPath, vetNa
         }
 
         // Format Header Text
-        const nameParts = (vetName || "UNKNOWN").trim().split(/\s+/);
-        let lastName = nameParts.length > 0 ? nameParts[nameParts.length - 1] : '';
-        let firstName = nameParts.length > 1 ? nameParts[0] : '';
-        let middleName = nameParts.length > 2 ? nameParts.slice(1, -1).join(' ') : '';
+        const cleanName = (vetName || "UNKNOWN").trim();
         
         // Ensure SSN is formatted as XXX XX XXXX
         const ssnDigits = (ssn || '000000000').replace(/\D/g, '');
@@ -124,7 +121,7 @@ async function buildConditionPacket(esfPath, researchPdfPaths, outputPath, vetNa
             ? `${ssnDigits.slice(0,3)} ${ssnDigits.slice(3,5)} ${ssnDigits.slice(5,9)}` 
             : ssn;
         
-        const headerText = `${lastName.toUpperCase()} ${firstName.toUpperCase()} ${middleName.toUpperCase()} | SSN: ${formattedSsn}`;
+        const headerText = `${cleanName} | SSN: ${formattedSsn}`;
 
         // Embed a standard font to measure text width
         const font = await finalDoc.embedFont(StandardFonts.Helvetica);

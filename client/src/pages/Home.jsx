@@ -239,7 +239,10 @@ export default function Home({ showHistory, setShowHistory }) {
                     {Object.keys(job.packets || {}).map(cond => (
                       <div key={cond} className="flex justify-between items-center bg-slate-50 p-2 rounded">
                         <span className="text-sm font-medium text-slate-700">{cond}</span>
-                        <a href={`/api/download/${job.packets[cond].split(/[/\\]/).pop()}`} target="_blank" rel="noreferrer" className="text-xs text-sky-600 hover:text-sky-800 font-bold bg-sky-50 px-3 py-1 rounded-full">Download PDF</a>
+                        <div className="flex gap-2">
+                          <a href={`/api/download/${job.packets[cond].split(/[/\\]/).pop()}`} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:text-indigo-800 font-bold bg-indigo-50 px-3 py-1 rounded-full">Read</a>
+                          <a href={`/api/download/${job.packets[cond].split(/[/\\]/).pop()}`} download className="text-xs text-sky-600 hover:text-sky-800 font-bold bg-sky-50 px-3 py-1 rounded-full">Download</a>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -367,7 +370,7 @@ export default function Home({ showHistory, setShowHistory }) {
                                 
                                 setConditions(newConditions);
                               }}
-                              className="font-semibold bg-transparent border-b border-dashed border-slate-300 focus:border-sky-500 focus:outline-none text-slate-800 px-1 py-0.5"
+                              className="flex-1 w-full mr-4 font-semibold bg-transparent border-b border-dashed border-slate-300 focus:border-sky-500 focus:outline-none text-slate-800 px-1 py-0.5"
                             />
                             <div className="flex items-center gap-2">
                                 <label className="text-xs text-sky-700 cursor-pointer hover:text-sky-800 font-medium px-2 py-1 bg-sky-100 rounded">
@@ -486,7 +489,10 @@ export default function Home({ showHistory, setShowHistory }) {
             {Object.keys(packets).map(cond => (
                 <div key={cond} className="bg-slate-50 rounded-lg p-3 text-slate-700 flex justify-between items-center">
                     <span>{cond}</span>
-                    <a href={`/api/download/${packets[cond].split(/[/\\]/).pop()}`} target="_blank" className="text-sky-600 hover:text-sky-700 font-medium">Download</a>
+                    <div className="flex gap-3 text-sm">
+                        <a href={`/api/download/${packets[cond].split(/[/\\]/).pop()}`} target="_blank" rel="noreferrer" className="text-indigo-600 hover:text-indigo-700 font-semibold px-2">Read</a>
+                        <a href={`/api/download/${packets[cond].split(/[/\\]/).pop()}`} download className="text-sky-600 hover:text-sky-700 font-semibold px-2 border-l border-slate-300">Download</a>
+                    </div>
                 </div>
             ))}
           </div>

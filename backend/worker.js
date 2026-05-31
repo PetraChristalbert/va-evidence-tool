@@ -54,49 +54,41 @@ async function runExtraction(jobId, memoPath) {
         const fileNumMatch = text.match(/\b(0\d{8})\b/) || text.match(/\b(\d{3})[\s\-](\d{3})[\s\-](\d{3})\b/);
         const va_file_number = fileNumMatch ? fileNumMatch[0].replace(/[^\d]/g, '') : "000000000";
 
-        const CONDITIONS = [
-          { rx: /obstructive sleep apnea|sleep apnea|OSA\b/i, label: 'Sleep Apnea' },
-          { rx: /post.traumatic stress disorder|PTSD\b/i, label: 'PTSD' },
-          { rx: /hypertension|high blood pressure/i, label: 'Hypertension' },
-          { rx: /diabetes mellitus|diabetes\b/i, label: 'Diabetes Mellitus' },
-          { rx: /neuropathy\b/i, label: 'Neuropathy' },
-          { rx: /tinnitus/i, label: 'Tinnitus' },
-          { rx: /major depressive disorder|depression\b|MDD\b/i, label: 'Depression' },
-          { rx: /generalized anxiety disorder|anxiety\b/i, label: 'Anxiety' },
-          { rx: /gastroesophageal reflux|GERD\b|acid reflux/i, label: 'GERD' },
-          { rx: /migraine headaches|migraines?\b/i, label: 'Migraines' },
-          { rx: /traumatic brain injury|TBI\b/i, label: 'TBI' },
-          { rx: /lumbar|lumbosacral|low back pain|back pain/i, label: 'Back Pain' },
-          { rx: /knee\b/i, label: 'Knee Condition' },
-          { rx: /shoulder\b/i, label: 'Shoulder Condition' },
-          { rx: /hearing loss|hearing impairment/i, label: 'Hearing Loss' }
-        ];
+        // Tokenize the document into strict, isolated blocks by the heading.
+        const chunkRegex = /(?=Memorandum\s+in\s+Support\s+of\s+a\s+Supplemental\s+Claim)/gi;
+        const sections = text.split(chunkRegex);
 
         const illnesses = new Set();
         const urls = {};
-        let activeConditions = ["Unknown Condition"];
-        const paragraphs = text.split(/\n+/);
 
-        paragraphs.forEach(p => {
-          const found = [];
-          CONDITIONS.forEach(c => {
-            if (c.rx.test(p)) {
-              illnesses.add(c.label);
-              found.push(c.label);
+        const conditionTitleRegex = /Memorandum\s+in\s+Support\s+of\s+a\s+Supplemental\s+Claim\s+([^\n\r]+)/i;
+        // Match links and ensure it stops reading at a space or a closing bracket
+        const urlRegex = /https?:\/\/[^\s\]\)]+/g;
+
+        for (const section of sections) {
+            // Skip empty strings
+            if (!section.trim()) continue;
+
+            const titleMatch = section.match(conditionTitleRegex);
+            
+            if (titleMatch) {
+                // Clean up the extracted condition string (strip any bracketed tags like [Pact Exam Exclusion...])
+                let conditionName = titleMatch[1].trim();
+                conditionName = conditionName.replace(/\s*\[.*?\]\s*/g, '').trim();
+
+                illnesses.add(conditionName);
+
+                // Extract links strictly within this isolated string block
+                const matchedLinks = section.match(urlRegex) || [];
+                
+                if (!urls[conditionName]) {
+                    urls[conditionName] = [];
+                }
+                
+                // Deduplicate links using Set
+                urls[conditionName] = [...new Set([...urls[conditionName], ...matchedLinks])];
             }
-          });
-          if (found.length > 0) activeConditions = found;
-
-          const urlMatch = p.match(/https?:\/\/[^\s\]\)]+/g) || [];
-          if (urlMatch.length > 0) {
-            activeConditions.forEach(cond => {
-              if (!urls[cond]) urls[cond] = [];
-              urlMatch.forEach(u => {
-                if (!urls[cond].includes(u)) urls[cond].push(u);
-              });
-            });
-          }
-        });
+        }
         
         jobs[jobId].status = 'done';
         jobs[jobId].condition_packets = {
@@ -133,7 +125,7 @@ async function runProcessing(jobId, jobData) {
             jobs[jobId].message = `Processing ${cond}`;
 
             const slug = cond.replace(/\W+/g, '_');
-            const finalPdfPath = path.join(OUTPUT_DIR, `${jobId}_Final_${slug}_Packet.pdf`);
+            const finalPdfPath = path.join(OUTPUT_DIR, `${vet_name} - ESF - Medical Research - ${cond}.pdf`);
             
             const researchPdfs = []; 
             if (manualFiles && manualFiles[cond] && Array.isArray(manualFiles[cond])) {
