@@ -379,7 +379,7 @@ export default function Home() {
             {Object.keys(packets).map(cond => (
                 <div key={cond} className="bg-slate-50 rounded-lg p-3 text-slate-700 flex justify-between items-center">
                     <span>{cond}</span>
-                    <a href={`/api/download/${packets[cond].split('/').pop()}`} target="_blank" className="text-sky-600 hover:text-sky-700 font-medium">Download</a>
+                    <a href={`/api/download/${packets[cond].split(/[/\\]/).pop()}`} target="_blank" className="text-sky-600 hover:text-sky-700 font-medium">Download</a>
                 </div>
             ))}
           </div>

@@ -20,6 +20,7 @@ async function getBrowserPage(jobId, jobs) {
     const userDataDir = path.join(__dirname, 'real_browser_profile');
     activeContext = await chromium.launchPersistentContext(userDataDir, {
         headless: false,
+        channel: 'chrome',
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
         viewport: { width: 1920, height: 1080 }
     });
