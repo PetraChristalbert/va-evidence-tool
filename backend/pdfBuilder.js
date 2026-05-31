@@ -84,20 +84,46 @@ async function buildConditionPacket(esfPath, researchPdfPaths, outputPath, vetNa
                 console.log(`[Note] Failed to draw checkbox X: ${e.message}`);
             }
 
-            // Strip all signature fields before flattening.
-            // pdf-lib does not flatten PDFSignature fields, leaving them active in Adobe Acrobat.
+            // STEP 1: Nuke the signature fields from the AcroForm dictionary
             try {
                 const fields = form.getFields();
-                fields.forEach(field => {
+                for (const field of fields) {
                     if (field.constructor.name === 'PDFSignature') {
                         form.removeField(field);
                     }
-                });
+                }
             } catch(e) {
-                console.log(`[Note] Failed to strip signature fields: ${e.message}`);
+                console.log(`[Note] Failed to strip signature fields from form: ${e.message}`);
             }
 
-            // Flatten the form to bake the values visually into the page
+            // STEP 2: Scrub orphaned annotations from the pages (The Adobe Acrobat Killshot)
+            try {
+                const { PDFName, PDFDict } = require('pdf-lib');
+                const pages = esfDoc.getPages();
+                for (const page of pages) {
+                    const annots = page.node.Annots();
+                    if (annots) {
+                        const annotArray = annots.asArray();
+                        
+                        // Filter out any annotation where the Field Type (FT) is 'Sig'
+                        const cleanedAnnots = annotArray.filter(annot => {
+                            const dict = esfDoc.context.lookup(annot);
+                            if (dict && dict instanceof PDFDict) {
+                                const fieldType = dict.get(PDFName.of('FT'));
+                                return fieldType !== PDFName.of('Sig');
+                            }
+                            return true;
+                        });
+                        
+                        // Overwrite the page's annotation array with the cleaned version
+                        page.node.set(PDFName.of('Annots'), esfDoc.context.obj(cleanedAnnots));
+                    }
+                }
+            } catch(e) {
+                console.log(`[Note] Failed to scrub Annots array: ${e.message}`);
+            }
+
+            // STEP 3: Flatten the remaining standard fields
             try {
                 form.flatten();
             } catch (flattenError) {

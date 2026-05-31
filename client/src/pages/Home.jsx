@@ -495,9 +495,9 @@ export default function Home({ showHistory, setShowHistory }) {
           <h2 className="text-slate-900 font-bold text-lg mb-4">Done! Packets Generated:</h2>
           <div className="flex flex-col gap-2">
             {Object.keys(packets).map(cond => (
-                <div key={cond} className="bg-slate-50 rounded-lg p-3 text-slate-700 flex justify-between items-center">
-                    <span>{cond}</span>
-                    <div className="flex gap-3 text-sm">
+                <div key={cond} className="bg-slate-50 rounded-lg p-3 text-slate-700 flex justify-between items-center text-left">
+                    <span className="pr-4 leading-snug">{cond}</span>
+                    <div className="flex gap-3 text-sm shrink-0">
                         <a href={`/api/download/${packets[cond].split(/[/\\]/).pop()}`} target="_blank" rel="noreferrer" className="text-indigo-600 hover:text-indigo-700 font-semibold px-2">Read</a>
                         <a href={`/api/download/${packets[cond].split(/[/\\]/).pop()}`} download className="text-sky-600 hover:text-sky-700 font-semibold px-2 border-l border-slate-300">Download</a>
                     </div>
