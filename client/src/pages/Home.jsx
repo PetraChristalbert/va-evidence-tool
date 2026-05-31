@@ -3,14 +3,20 @@ import { FileUp, FileText, CheckCircle2 } from 'lucide-react';
 
 const API_URL = '/api';
 
-export default function Home() {
+export default function Home({ showHistory, setShowHistory }) {
   const [step, setStep] = useState('upload'); // upload, parsing, confirm, processing, complete
   const [esfFile, setEsfFile] = useState(null);
   const [memoFile, setMemoFile] = useState(null);
   const [jobId, setJobId] = useState('');
+  const [existingEsfFilename, setExistingEsfFilename] = useState(null);
+  const [sigFile, setSigFile] = useState(null);
+  const [existingSigFilename, setExistingSigFilename] = useState(null);
   
   // Terminal logs state
   const [logs, setLogs] = useState([]);
+  
+  // History State
+  const [historyData, setHistoryData] = useState([]);
   
   // Job Data
   const [vetName, setVetName] = useState('');
@@ -22,6 +28,21 @@ export default function Home() {
   const [packets, setPackets] = useState({});
   const [manualUploads, setManualUploads] = useState({});
   const [manualLinks, setManualLinks] = useState({});
+
+  useEffect(() => {
+    if (showHistory) {
+      const fetchHistory = async () => {
+        try {
+          const res = await fetch('/api/history');
+          const data = await res.json();
+          setHistoryData(data);
+        } catch(err) {
+          console.error(err);
+        }
+      };
+      fetchHistory();
+    }
+  }, [showHistory]);
 
   const handleUpload = async () => {
     if (!esfFile) return alert("ESF is required");
@@ -84,6 +105,14 @@ export default function Home() {
       
       if (esfFile) {
         formData.append('esf', esfFile);
+      } else if (existingEsfFilename) {
+        formData.append('existingEsfFilename', existingEsfFilename);
+      }
+
+      if (sigFile) {
+        formData.append('sig', sigFile);
+      } else if (existingSigFilename) {
+        formData.append('existingSigFilename', existingSigFilename);
       }
       
       // Append manual files
@@ -175,9 +204,53 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [step, jobId]);
 
+  const handleReloadJob = (job) => {
+    setJobId(job.jobId);
+    setVetName(job.vet_name || '');
+    setVaFileNumber(job.va_file_number || '');
+    setConditions(job.conditions || []);
+    setExistingEsfFilename(job.esfFilename || null);
+    setExistingSigFilename(job.sigFilename || null);
+    setManualLinks({});
+    setManualUploads({});
+    setStep('confirm');
+    setShowHistory(false);
+  };
+
   return (
     <main className="max-w-5xl mx-auto px-6 py-10">
-      {step === 'upload' && (
+      {showHistory && (
+        <section className="animate-in fade-in">
+          <h2 className="text-3xl font-bold text-slate-900 mb-6 tracking-tight">Job History</h2>
+          {historyData.length === 0 ? (
+            <p className="text-slate-500">No past jobs found.</p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {historyData.map((job, idx) => (
+                <div key={idx} className="glass-elevated rounded-xl p-5">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-bold text-slate-800">{job.vet_name} <span className="text-slate-400 font-normal text-sm ml-2">SSN: {job.va_file_number}</span></h3>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded">{new Date(job.date).toLocaleString()}</span>
+                      <button onClick={() => handleReloadJob(job)} className="text-xs text-indigo-600 hover:text-indigo-800 font-bold bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200 transition-colors shadow-sm">Reload Job</button>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {Object.keys(job.packets || {}).map(cond => (
+                      <div key={cond} className="flex justify-between items-center bg-slate-50 p-2 rounded">
+                        <span className="text-sm font-medium text-slate-700">{cond}</span>
+                        <a href={`/api/download/${job.packets[cond].split(/[/\\]/).pop()}`} target="_blank" rel="noreferrer" className="text-xs text-sky-600 hover:text-sky-800 font-bold bg-sky-50 px-3 py-1 rounded-full">Download PDF</a>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {!showHistory && step === 'upload' && (
         <section className="animate-in fade-in">
           <div className="text-center mb-12">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-100 border border-sky-200 text-sky-800 text-xs font-medium mb-5">
@@ -190,18 +263,18 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <span className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 bg-gradient-to-br from-sky-500 to-blue-600">1</span>
                 <span className="text-slate-900 font-semibold text-sm">Evidence Summary Form (ESF)</span>
-                <span className="ml-auto text-red-500 text-xs font-medium">required</span>
+                <span className="ml-auto text-red-500 text-xs font-medium">req</span>
               </div>
-              <label className={`drop-zone p-8 text-center block ${esfFile ? 'has-file' : ''}`}>
-                <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center bg-sky-50 border border-sky-100">
+              <label className={`drop-zone p-8 text-center flex flex-col items-center justify-center h-56 w-full ${esfFile ? 'has-file' : ''}`}>
+                <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center bg-sky-50 border border-sky-100 shrink-0">
                   <FileText className="w-7 h-7 text-sky-500" />
                 </div>
-                <p className="text-slate-900 font-semibold text-sm mb-1">{esfFile ? esfFile.name : 'Drop .pdf ESF here'}</p>
+                <p className="text-slate-900 font-semibold text-sm mb-1 truncate w-full px-2" title={esfFile ? esfFile.name : 'Drop .pdf ESF here'}>{esfFile ? esfFile.name : 'Drop .pdf ESF here'}</p>
                 <p className="text-slate-500 text-xs mb-4">One filled copy created per condition</p>
                 <input type="file" className="hidden" accept=".pdf" onChange={(e) => setEsfFile(e.target.files[0])} />
               </label>
@@ -212,13 +285,28 @@ export default function Home() {
                 <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-600 text-xs flex items-center justify-center font-bold shrink-0">2</span>
                 <span className="text-slate-900 font-semibold text-sm">Veteran Memorandum</span>
               </div>
-              <label className={`drop-zone p-8 text-center block ${memoFile ? 'has-file' : ''}`}>
-                <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center bg-slate-50 border border-slate-200">
+              <label className={`drop-zone p-8 text-center flex flex-col items-center justify-center h-56 w-full ${memoFile ? 'has-file' : ''}`}>
+                <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center bg-slate-50 border border-slate-200 shrink-0">
                   <FileUp className="w-7 h-7 text-slate-400" />
                 </div>
-                <p className="text-slate-900 font-semibold text-sm mb-1">{memoFile ? memoFile.name : 'Drop .docx or .pdf'}</p>
-                <p className="text-slate-500 text-xs mb-4">optional — auto-fills veteran information</p>
+                <p className="text-slate-900 font-semibold text-sm mb-1 truncate w-full px-2" title={memoFile ? memoFile.name : 'Drop .docx or .pdf'}>{memoFile ? memoFile.name : 'Drop .docx or .pdf'}</p>
+                <p className="text-slate-500 text-xs mb-4">optional — auto-fills veteran info</p>
                 <input type="file" className="hidden" accept=".docx,.pdf" onChange={(e) => setMemoFile(e.target.files[0])} />
+              </label>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-600 text-xs flex items-center justify-center font-bold shrink-0">3</span>
+                <span className="text-slate-900 font-semibold text-sm">Signature Image</span>
+              </div>
+              <label className={`drop-zone p-8 text-center flex flex-col items-center justify-center h-56 w-full ${sigFile ? 'has-file' : ''}`}>
+                <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center bg-indigo-50 border border-indigo-100 shrink-0">
+                  <FileUp className="w-7 h-7 text-indigo-400" />
+                </div>
+                <p className="text-slate-900 font-semibold text-sm mb-1 truncate w-full px-2" title={sigFile ? sigFile.name : 'Drop transparent .png'}>{sigFile ? sigFile.name : 'Drop transparent .png'}</p>
+                <p className="text-slate-500 text-xs mb-4">optional — stamps on Box 19A</p>
+                <input type="file" className="hidden" accept=".png,.jpg,.jpeg" onChange={(e) => setSigFile(e.target.files[0])} />
               </label>
             </div>
           </div>
@@ -261,7 +349,26 @@ export default function Home() {
                  {conditions.map((c, i) => (
                     <div key={i} className="flex flex-col bg-slate-50 p-3 rounded-lg mb-2">
                         <div className="flex items-center justify-between mb-2">
-                            <span className="text-slate-700 font-medium">{c}</span>
+                            <input 
+                              type="text" 
+                              value={c} 
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                const newConditions = [...conditions];
+                                newConditions[i] = val;
+                                
+                                const newUploads = {...manualUploads};
+                                if (newUploads[c]) { newUploads[val] = newUploads[c]; delete newUploads[c]; }
+                                setManualUploads(newUploads);
+                                
+                                const newLinks = {...manualLinks};
+                                if (newLinks[c]) { newLinks[val] = newLinks[c]; delete newLinks[c]; }
+                                setManualLinks(newLinks);
+                                
+                                setConditions(newConditions);
+                              }}
+                              className="font-semibold bg-transparent border-b border-dashed border-slate-300 focus:border-sky-500 focus:outline-none text-slate-800 px-1 py-0.5"
+                            />
                             <div className="flex items-center gap-2">
                                 <label className="text-xs text-sky-700 cursor-pointer hover:text-sky-800 font-medium px-2 py-1 bg-sky-100 rounded">
                                     + Add PDF
@@ -337,7 +444,7 @@ export default function Home() {
         </section>
       )}
 
-      {step === 'processing' && (
+      {!showHistory && step === 'processing' && (
         <section className="glass rounded-2xl p-8 max-w-2xl mx-auto text-center animate-in fade-in flex flex-col items-center">
           <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-indigo-500/15 border border-indigo-500/30 mx-auto mb-4">
              <div className="spinner"></div>
@@ -369,7 +476,7 @@ export default function Home() {
         </section>
       )}
 
-      {step === 'complete' && (
+      {!showHistory && step === 'complete' && (
         <section className="glass rounded-2xl p-8 max-w-2xl mx-auto text-center animate-in fade-in">
           <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-green-500/15 border border-green-500/30 mx-auto mb-4">
              <CheckCircle2 className="w-6 h-6 text-green-400" />
@@ -382,6 +489,11 @@ export default function Home() {
                     <a href={`/api/download/${packets[cond].split(/[/\\]/).pop()}`} target="_blank" className="text-sky-600 hover:text-sky-700 font-medium">Download</a>
                 </div>
             ))}
+          </div>
+          <div className="mt-8">
+            <button onClick={() => setStep('confirm')} className="text-sm font-semibold text-slate-500 hover:text-slate-700 transition-colors">
+              ← Back to Edit
+            </button>
           </div>
         </section>
       )}

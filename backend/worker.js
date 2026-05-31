@@ -111,8 +111,8 @@ async function runExtraction(jobId, memoPath) {
     }
 }
 
-async function runProcessing(jobId, data) {
-    const { vet_name, va_file_number, conditions, manualFiles, manualLinks, esfFilename } = data;
+async function runProcessing(jobId, jobData) {
+    const { vet_name, va_file_number, conditions, manualFiles, manualLinks, esfFilename, sigFilename } = jobData;
     jobs[jobId] = { 
         status: 'processing', 
         stage: 'downloading', 
@@ -157,6 +157,7 @@ async function runProcessing(jobId, data) {
             jobs[jobId].message = `Merging ${cond} packet`;
             
             let esfPath = esfFilename ? path.join(UPLOADS_DIR, esfFilename) : null;
+            let sigPath = sigFilename ? path.join(UPLOADS_DIR, sigFilename) : null;
             
             if (!esfPath || !fs.existsSync(esfPath)) {
               esfPath = path.join(UPLOADS_DIR, 'blank_esf.pdf');
@@ -168,7 +169,7 @@ async function runProcessing(jobId, data) {
               }
             }
 
-            await buildConditionPacket(esfPath, researchPdfs, finalPdfPath, vet_name, cond, va_file_number);
+            await buildConditionPacket(esfPath, researchPdfs, finalPdfPath, vet_name, cond, va_file_number, sigPath);
             condition_packets[cond] = finalPdfPath;
         }
 
@@ -176,6 +177,28 @@ async function runProcessing(jobId, data) {
         jobs[jobId].stage = 'done';
         jobs[jobId].message = 'All packets generated successfully.';
         jobs[jobId].condition_packets = condition_packets;
+
+        // Save to history
+        try {
+            const historyPath = path.join(OUTPUT_DIR, 'history.json');
+            let historyData = [];
+            if (fs.existsSync(historyPath)) {
+                historyData = JSON.parse(fs.readFileSync(historyPath));
+            }
+            historyData.unshift({
+                jobId,
+                date: new Date().toISOString(),
+                vet_name,
+                va_file_number,
+                conditions,
+                packets: condition_packets,
+                esfFilename,
+                sigFilename
+            });
+            fs.writeFileSync(historyPath, JSON.stringify(historyData, null, 2));
+        } catch(err) {
+            console.error('Failed to save history', err);
+        }
     } catch (e) {
         console.error('Processing failed', e);
         jobs[jobId].status = 'error';

@@ -29,3 +29,21 @@ You do not need to know any code to run this. Just follow these steps:
 4. **Generate:** Click the big "Generate Packets" button.
 5. **Security Checks (CAPTCHAs):** If a website thinks you are a robot and throws up a "Verify you are human" check, a Chrome window will pop up. Just click the checkbox in that window to prove you are human, and then click the green **"I Have Solved the CAPTCHA"** button in our app to continue!
 6. **Download:** When it finishes, click the Download button next to each condition to get your fully-stamped, compressed PDF packet.
+
+---
+
+## ✍️ How to Add a Digital Signature (Optional)
+
+You can have the app automatically stamp your digital signature into **Box 19A** on the generated Evidence Summary Form!
+
+To set this up, you need a clean, transparent image of your signature. Here is how to make one:
+
+1. **Get your Signature:** Take a clear photo of your signature, or write it in a drawing app. Make sure it is straight (not rotated).
+2. **Crop It:** Crop the image so that the edges of the picture are closely wrapped around your signature, like this:
+
+   ![Example Signature](docs/Example_Signature.png)
+
+3. **Remove the Background:** A solid white background can accidentally cover up the black lines of the PDF box. Go to [remove.bg](https://www.remove.bg/) and upload your cropped signature. It will automatically strip away the white background for free!
+4. **Download and Upload:** Download the new transparent image (it will be a `.png` file). Drag and drop this `.png` file into the 3rd **"Signature Image"** box in the app.
+
+*Note: The app's Job History feature will automatically remember your signature when you click "Reload Job" for past clients!*

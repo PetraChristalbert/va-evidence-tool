@@ -2,7 +2,7 @@ const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
 const fs = require('fs');
 const path = require('path');
 
-async function buildConditionPacket(esfPath, researchPdfPaths, outputPath, vetName, condition, ssn) {
+async function buildConditionPacket(esfPath, researchPdfPaths, outputPath, vetName, condition, ssn, sigPath) {
     try {
         // Load the ESF
         const esfBytes = fs.readFileSync(esfPath);
@@ -19,25 +19,79 @@ async function buildConditionPacket(esfPath, researchPdfPaths, outputPath, vetNa
             const dd = String(today.getDate()).padStart(2, '0');
             const yyyy = String(today.getFullYear());
             
-            // Attempt to fill all signature date fields to be safe (indices 0, 1, 2)
-            for (let i = 0; i < 3; i++) {
-                try { form.getTextField(`F[0].#subform[1].Date_Signed_Month[${i}]`).setText(mm); } catch(e){}
-                try { form.getTextField(`F[0].#subform[1].Date_Signed_Day[${i}]`).setText(dd); } catch(e){}
-                try { form.getTextField(`F[0].#subform[1].Date_Signed_Year[${i}]`).setText(yyyy); } catch(e){}
+            // Fill ONLY the 19B signature date field (index 2)
+            try { form.getTextField(`F[0].#subform[1].Date_Signed_Month[2]`).setText(mm); } catch(e){}
+            try { form.getTextField(`F[0].#subform[1].Date_Signed_Day[2]`).setText(dd); } catch(e){}
+            try { form.getTextField(`F[0].#subform[1].Date_Signed_Year[2]`).setText(yyyy); } catch(e){}
+
+            // Embed Signature
+            if (sigPath && fs.existsSync(sigPath)) {
+                try {
+                    const pages = esfDoc.getPages();
+                    if (pages.length > 1) {
+                        const sigBytes = fs.readFileSync(sigPath);
+                        let sigImage;
+                        if (sigPath.toLowerCase().endsWith('.png')) {
+                            sigImage = await esfDoc.embedPng(sigBytes);
+                        } else if (sigPath.toLowerCase().match(/\.jpe?g$/)) {
+                            sigImage = await esfDoc.embedJpg(sigBytes);
+                        }
+
+                        if (sigImage) {
+                            // Target Box 19A roughly: x=30, y=155, width=276, height=24
+                            // Scale height to ~35 for realistic overflow, calculate width proportionally
+                            const scaledDims = sigImage.scaleToFit(999, 35);
+                            
+                            // Center horizontally in the 276px wide box
+                            const boxX = 30;
+                            const boxWidth = 276;
+                            const boxY = 155;
+                            const centeredX = boxX + (boxWidth / 2) - (scaledDims.width / 2);
+
+                            pages[1].drawImage(sigImage, {
+                                x: centeredX,
+                                y: boxY - 5, // slightly lower to look like it sits on the line
+                                width: scaledDims.width,
+                                height: scaledDims.height
+                            });
+                        }
+                    }
+                } catch(e) {
+                    console.log(`[Note] Failed to embed signature: ${e.message}`);
+                }
             }
-            
+
+            // Forcefully draw an 'X' over the checkbox's exact coordinates to ensure visibility.
+            // Do this BEFORE flatten() because if flatten() throws an error, it corrupts and deletes fields!
+            try {
+                const pages = esfDoc.getPages();
+                if (pages.length > 1) { // Form 20-10208 is 2 pages, box is on page 2
+                    const checkboxField = form.getCheckBox('F[0].#subform[1].#field[66]');
+                    const checkboxWidget = checkboxField.acroField.getWidgets()[0];
+                    if (checkboxWidget) {
+                        const rect = checkboxWidget.getRectangle();
+                        pages[1].drawText('X', {
+                            x: rect.x + 1.5,
+                            y: rect.y + 1,
+                            size: 9,
+                            color: rgb(0, 0, 0)
+                        });
+                        // Remove the field so its white background doesn't obscure our drawn text
+                        form.removeField(checkboxField);
+                    }
+                }
+            } catch(e) {
+                console.log(`[Note] Failed to draw checkbox X: ${e.message}`);
+            }
+
             // Flatten the form to bake the values visually into the page
-            form.flatten();
-        } catch (e) {
-            console.error('Failed to fill ESF form fields:', e);
-            // Fallback manual draw
-            const pages = esfDoc.getPages();
-            if (pages.length > 0) {
-                const page = pages[0];
-                const { height } = page.getSize();
-                page.drawText('X', { x: 50, y: height - 600, size: 12, color: rgb(0, 0, 0) });
-                page.drawText(`${condition} Research Document Attached`, { x: 70, y: height - 600, size: 10, color: rgb(0, 0, 0) });
+            try {
+                form.flatten();
+            } catch (flattenError) {
+                // Ignore flatten errors (e.g. Unexpected N type: undefined)
             }
+        } catch (e) {
+            console.log(`[Note] Failed to fill ESF form fields dynamically: ${e.message}`);
         }
 
         // Create the final merged document

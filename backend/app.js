@@ -52,7 +52,7 @@ app.post('/api/upload', upload.single('memo'), (req, res) => {
 // 2. Process API (Accepts manual PDF uploads)
 app.post('/api/process', upload.any(), (req, res) => {
   try {
-    const { jobId, vetName, vaFileNumber, conditions, manualLinks } = req.body;
+    const { jobId, vetName, vaFileNumber, conditions, manualLinks, existingEsfFilename, existingSigFilename } = req.body;
     
     // Parse the conditions array from JSON
     const parsedConditions = JSON.parse(conditions || '[]');
@@ -60,11 +60,14 @@ app.post('/api/process', upload.any(), (req, res) => {
 
     // Map manual uploaded files to their conditions
     const manualFiles = {};
-    let esfFilename = null;
+    let esfFilename = existingEsfFilename || null;
+    let sigFilename = existingSigFilename || null;
     if (req.files) {
       req.files.forEach(file => {
         if (file.fieldname === 'esf') {
           esfFilename = file.filename;
+        } else if (file.fieldname === 'sig') {
+          sigFilename = file.filename;
         } else if (file.fieldname.startsWith('manual_')) {
           const condName = file.fieldname.replace('manual_', '');
           if (!manualFiles[condName]) manualFiles[condName] = [];
@@ -79,7 +82,8 @@ app.post('/api/process', upload.any(), (req, res) => {
       conditions: parsedConditions,
       manualFiles,
       manualLinks: parsedLinks,
-      esfFilename
+      esfFilename,
+      sigFilename
     };
 
     // Start background processing
