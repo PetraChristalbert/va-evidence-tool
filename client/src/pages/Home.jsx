@@ -204,6 +204,14 @@ export default function Home({ showHistory, setShowHistory }) {
     return () => clearInterval(interval);
   }, [step, jobId]);
 
+  // Audio cue for CAPTCHA intervention
+  useEffect(() => {
+    if (progressMsg && progressMsg.includes('CAPTCHA')) {
+      const audio = new Audio('/ding.mp3');
+      audio.play().catch(err => console.log("Failed to play audio cue:", err));
+    }
+  }, [progressMsg]);
+
   const handleReloadJob = (job) => {
     setJobId(job.jobId);
     setVetName(job.vet_name || '');

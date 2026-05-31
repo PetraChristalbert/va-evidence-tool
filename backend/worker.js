@@ -55,13 +55,13 @@ async function runExtraction(jobId, memoPath) {
         const va_file_number = fileNumMatch ? fileNumMatch[0].replace(/[^\d]/g, '') : "000000000";
 
         // Tokenize the document into strict, isolated blocks by the heading.
-        const chunkRegex = /(?=Memorandum\s+in\s+Support\s+of\s+a\s+Supplemental\s+Claim)/gi;
+        const chunkRegex = /(?=Memorandum\s+in\s+Support\s+of\s+(?:a\s+)?Supplemental\s+Claim)/gi;
         const sections = text.split(chunkRegex);
 
         const illnesses = new Set();
         const urls = {};
 
-        const conditionTitleRegex = /Memorandum\s+in\s+Support\s+of\s+a\s+Supplemental\s+Claim\s+([^\n\r]+)/i;
+        const conditionTitleRegex = /Memorandum\s+in\s+Support\s+of\s+(?:a\s+)?Supplemental\s+Claim\s+([^\n\r]+)/i;
         // Match links and ensure it stops reading at a space or a closing bracket
         const urlRegex = /https?:\/\/[^\s\]\)]+/g;
 

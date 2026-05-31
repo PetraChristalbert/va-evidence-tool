@@ -88,7 +88,12 @@ async function buildConditionPacket(esfPath, researchPdfPaths, outputPath, vetNa
             try {
                 form.flatten();
             } catch (flattenError) {
-                // Ignore flatten errors (e.g. Unexpected N type: undefined)
+                console.log(`[Note] ESF form flatten error: ${flattenError.message}`);
+                // If flattening fails (common pdf-lib issue with some forms), 
+                // at least ensure the fields' visual appearances are updated so they show up.
+                try {
+                    form.updateFieldAppearances();
+                } catch(e) {}
             }
         } catch (e) {
             console.log(`[Note] Failed to fill ESF form fields dynamically: ${e.message}`);
@@ -142,6 +147,14 @@ async function buildConditionPacket(esfPath, researchPdfPaths, outputPath, vetNa
                 font: font,
                 color: rgb(0, 0, 0)
             });
+        }
+
+        // Ensure the final merged document is completely flattened (static)
+        try {
+            const finalForm = finalDoc.getForm();
+            finalForm.flatten();
+        } catch (e) {
+            console.log(`[Note] Failed to flatten final merged document: ${e.message}`);
         }
 
         // Save the merged document
