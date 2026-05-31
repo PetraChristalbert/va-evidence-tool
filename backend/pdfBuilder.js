@@ -97,6 +97,7 @@ async function buildConditionPacket(esfPath, researchPdfPaths, outputPath, vetNa
             }
 
             // STEP 2: Scrub orphaned annotations from the pages (The Adobe Acrobat Killshot)
+            // Includes bug fix for pdf-lib "Unexpected N type: undefined" by neutralizing broken AP dictionaries
             try {
                 const { PDFName, PDFDict } = require('pdf-lib');
                 const pages = esfDoc.getPages();
@@ -105,17 +106,31 @@ async function buildConditionPacket(esfPath, researchPdfPaths, outputPath, vetNa
                     if (annots) {
                         const annotArray = annots.asArray();
                         
-                        // Filter out any annotation where the Field Type (FT) is 'Sig'
-                        const cleanedAnnots = annotArray.filter(annot => {
-                            const dict = esfDoc.context.lookup(annot);
-                            if (dict && dict instanceof PDFDict) {
-                                const fieldType = dict.get(PDFName.of('FT'));
-                                return fieldType !== PDFName.of('Sig');
+                        const cleanedAnnots = annotArray.filter(annotRef => {
+                            const annotObj = esfDoc.context.lookup(annotRef);
+                            if (!annotObj || !(annotObj instanceof PDFDict)) return false;
+
+                            // Nuke the Signature widgets
+                            const ft = annotObj.get(PDFName.of('FT'));
+                            if (ft === PDFName.of('Sig')) {
+                                return false; 
                             }
-                            return true;
+
+                            // --- BUG FIX FOR "Unexpected N type: undefined" ---
+                            // If any field has a broken Appearance (/AP) dictionary missing the 
+                            // Normal (/N) state, we delete the /AP dict so flatten() doesn't crash.
+                            const ap = annotObj.get(PDFName.of('AP'));
+                            if (ap) {
+                                const apObj = esfDoc.context.lookup(ap);
+                                if (apObj && apObj instanceof PDFDict && !apObj.get(PDFName.of('N'))) {
+                                    annotObj.delete(PDFName.of('AP')); 
+                                }
+                            }
+
+                            return true; // Keep all other healthy annotations
                         });
                         
-                        // Overwrite the page's annotation array with the cleaned version
+                        // Overwrite the page's annotation array with the cleaned/patched version
                         page.node.set(PDFName.of('Annots'), esfDoc.context.obj(cleanedAnnots));
                     }
                 }
