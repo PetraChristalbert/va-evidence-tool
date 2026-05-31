@@ -13,11 +13,17 @@ async function buildConditionPacket(esfPath, researchPdfPaths, outputPath, vetNa
             form.getCheckBox('F[0].#subform[1].#field[66]').check();
             form.getTextField('F[0].#subform[1].Other_Describe[0]').setText(`${condition} Research Document Attached`);
             
-            // Set Date Signed
+            // Set Date Signed (Convert to US Eastern Time)
             const today = new Date();
-            const mm = String(today.getMonth() + 1).padStart(2, '0');
-            const dd = String(today.getDate()).padStart(2, '0');
-            const yyyy = String(today.getFullYear());
+            const usDateString = new Intl.DateTimeFormat('en-US', {
+                timeZone: 'America/New_York',
+                month: '2-digit',
+                day: '2-digit',
+                year: 'numeric'
+            }).format(today);
+            
+            // usDateString format: "MM/DD/YYYY"
+            const [mm, dd, yyyy] = usDateString.split('/');
             
             // Fill ONLY the 19B signature date field (index 2)
             try { form.getTextField(`F[0].#subform[1].Date_Signed_Month[2]`).setText(mm); } catch(e){}
