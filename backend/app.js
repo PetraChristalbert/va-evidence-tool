@@ -32,10 +32,12 @@ const upload = multer({ storage });
 app.post('/api/upload', upload.single('memo'), (req, res) => {
   try {
     const jobId = req.body.jobId;
+    const memoFormat = req.body.memoFormat || 'old';
+    const altText = req.body.altText || null;
     
     // Start background extraction
     setTimeout(() => {
-        runExtraction(jobId, req.file ? req.file.filename : null);
+        runExtraction(jobId, req.file ? req.file.filename : null, memoFormat, altText);
     }, 0);
 
     res.json({

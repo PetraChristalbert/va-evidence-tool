@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileUp, FileText, CheckCircle2 } from 'lucide-react';
+import { FileUp, FileText, CheckCircle2, Trash2, Plus, Copy } from 'lucide-react';
 
 const API_URL = '/api';
 
@@ -11,6 +11,10 @@ export default function Home({ showHistory, setShowHistory }) {
   const [existingEsfFilename, setExistingEsfFilename] = useState(null);
   const [sigFile, setSigFile] = useState(null);
   const [existingSigFilename, setExistingSigFilename] = useState(null);
+  
+  // Format choice
+  const [memoFormat, setMemoFormat] = useState('old');
+  const [altTextInput, setAltTextInput] = useState('');
   
   // Terminal logs state
   const [logs, setLogs] = useState([]);
@@ -28,6 +32,17 @@ export default function Home({ showHistory, setShowHistory }) {
   const [packets, setPackets] = useState({});
   const [manualUploads, setManualUploads] = useState({});
   const [manualLinks, setManualLinks] = useState({});
+
+  const formatSSN = (val) => {
+    let raw = val.replace(/\D/g, '');
+    if (raw.length > 9) raw = raw.slice(0, 9);
+    if (raw.length > 5) {
+      return `${raw.slice(0, 3)}-${raw.slice(3, 5)}-${raw.slice(5)}`;
+    } else if (raw.length > 3) {
+      return `${raw.slice(0, 3)}-${raw.slice(3)}`;
+    }
+    return raw;
+  };
 
   useEffect(() => {
     if (showHistory) {
@@ -51,6 +66,10 @@ export default function Home({ showHistory, setShowHistory }) {
     const formData = new FormData();
     const jId = window.crypto.randomUUID();
     formData.append('jobId', jId);
+    formData.append('memoFormat', memoFormat);
+    if (memoFormat === 'alt') {
+      formData.append('altText', altTextInput);
+    }
     formData.append('memo', memoFile || esfFile);
     
     try {
@@ -67,8 +86,8 @@ export default function Home({ showHistory, setShowHistory }) {
           const statusRes = await fetch(`/api/status/${data.jobId}?type=extract`);
           const statusData = await statusRes.json();
           if (statusData.status === 'done') {
-            setVetName(statusData.condition_packets.vet_name || "Unknown");
-            setVaFileNumber(statusData.condition_packets.va_file_number || "Unknown");
+            setVetName(statusData.condition_packets.vet_name || "");
+            setVaFileNumber(formatSSN(statusData.condition_packets.va_file_number || ""));
             setConditions(statusData.condition_packets.illnesses_clean || []);
             setManualLinks(statusData.condition_packets.urls || {});
             setStep('confirm');
@@ -215,7 +234,7 @@ export default function Home({ showHistory, setShowHistory }) {
   const handleReloadJob = (job) => {
     setJobId(job.jobId);
     setVetName(job.vet_name || '');
-    setVaFileNumber(job.va_file_number || '');
+    setVaFileNumber(formatSSN(job.va_file_number || ''));
     setConditions(job.conditions || []);
     setExistingEsfFilename(job.esfFilename || null);
     setExistingSigFilename(job.sigFilename || null);
@@ -272,6 +291,29 @@ export default function Home({ showHistory, setShowHistory }) {
             <p className="text-slate-500 text-base max-w-xl mx-auto leading-relaxed">
               Upload your Evidence Summary Form and an optional veteran memorandum. Add conditions and research URLs to generate per-condition PDF packets.
             </p>
+            
+            <div className="mt-8 flex justify-center">
+              <div className="bg-slate-100 p-1 rounded-lg inline-flex">
+                <button 
+                  onClick={() => setMemoFormat('old')} 
+                  className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${memoFormat === 'old' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  Old Version
+                </button>
+                <button 
+                  onClick={() => setMemoFormat('new')} 
+                  className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${memoFormat === 'new' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  New Version
+                </button>
+                <button 
+                  onClick={() => setMemoFormat('alt')} 
+                  className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${memoFormat === 'alt' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  Alt Version
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-6">
@@ -296,14 +338,36 @@ export default function Home({ showHistory, setShowHistory }) {
                 <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-600 text-xs flex items-center justify-center font-bold shrink-0">2</span>
                 <span className="text-slate-900 font-semibold text-sm">Veteran Memorandum</span>
               </div>
-              <label className={`drop-zone p-8 text-center flex flex-col items-center justify-center h-56 w-full ${memoFile ? 'has-file' : ''}`}>
-                <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center bg-slate-50 border border-slate-200 shrink-0">
-                  <FileUp className="w-7 h-7 text-slate-400" />
+              {memoFormat === 'alt' ? (
+                <div className="relative">
+                  <button 
+                    onClick={() => {
+                      const prompt = `Please read the following document and extract the medical conditions and their associated research links. Do not include the Veteran's name or SSN. Output your findings STRICTLY in the following JSON format, with no markdown formatting, no backticks, and no conversational text:\n[\n  {\n    "condition": "Condition Name",\n    "links": ["url1", "url2"]\n  }\n]`;
+                      navigator.clipboard.writeText(prompt);
+                      alert('Prompt copied!');
+                    }}
+                    className="absolute top-2 right-2 px-2 py-1 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded hover:bg-indigo-100 transition-colors border border-indigo-200 shadow-sm z-10"
+                    title="Copy AI Prompt"
+                  >
+                    Copy AI Prompt
+                  </button>
+                  <textarea 
+                    className="w-full h-56 resize-none rounded-2xl bg-white border border-slate-200 focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 focus:outline-none p-4 pt-10 text-sm text-slate-700 shadow-sm"
+                    placeholder="Paste AI JSON here..."
+                    value={altTextInput}
+                    onChange={e => setAltTextInput(e.target.value)}
+                  />
                 </div>
-                <p className="text-slate-900 font-semibold text-sm mb-1 truncate w-full px-2" title={memoFile ? memoFile.name : 'Drop .docx or .pdf'}>{memoFile ? memoFile.name : 'Drop .docx or .pdf'}</p>
-                <p className="text-slate-500 text-xs mb-4">optional — auto-fills veteran info</p>
-                <input type="file" className="hidden" accept=".docx,.pdf" onChange={(e) => setMemoFile(e.target.files[0])} />
-              </label>
+              ) : (
+                <label className={`drop-zone p-8 text-center flex flex-col items-center justify-center h-56 w-full ${memoFile ? 'has-file' : ''}`}>
+                  <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center bg-slate-50 border border-slate-200 shrink-0">
+                    <FileUp className="w-7 h-7 text-slate-400" />
+                  </div>
+                  <p className="text-slate-900 font-semibold text-sm mb-1 truncate w-full px-2" title={memoFile ? memoFile.name : 'Drop .docx or .pdf'}>{memoFile ? memoFile.name : 'Drop .docx or .pdf'}</p>
+                  <p className="text-slate-500 text-xs mb-4">optional — auto-fills veteran info</p>
+                  <input type="file" className="hidden" accept=".docx,.pdf" onChange={(e) => setMemoFile(e.target.files[0])} />
+                </label>
+              )}
             </div>
 
             <div>
@@ -342,9 +406,37 @@ export default function Home({ showHistory, setShowHistory }) {
 
       {step === 'confirm' && (
         <section className="animate-in fade-in">
-           <div className="mb-8">
-            <h2 className="text-3xl font-bold text-slate-900 mb-1 tracking-tight">Confirm Details</h2>
-            <p className="text-slate-500 text-sm">Verify extracted information.</p>
+           <div className="mb-8 flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+            <div>
+              <h2 className="text-3xl font-bold text-slate-900 mb-1 tracking-tight">Confirm Details</h2>
+              <p className="text-slate-500 text-sm">Verify extracted information.</p>
+            </div>
+            <button 
+              onClick={() => {
+                let exportText = `Veteran: ${vetName}\nSSN: ${vaFileNumber}\n\n`;
+                conditions.forEach(c => {
+                  if (c) {
+                    exportText += `Condition: ${c}\n`;
+                    if (manualLinks[c] && manualLinks[c].length > 0) {
+                      exportText += `Links:\n`;
+                      manualLinks[c].forEach(link => {
+                        exportText += `- ${link}\n`;
+                      });
+                    } else {
+                      exportText += `Links: None\n`;
+                    }
+                    exportText += `\n`;
+                  }
+                });
+                navigator.clipboard.writeText(exportText.trim());
+                alert("Data copied to clipboard! You can now paste it to your AI Assistant.");
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 text-sm font-semibold rounded-lg hover:bg-indigo-100 transition-colors border border-indigo-200 shadow-sm shrink-0"
+              title="Copy details to verify with AI"
+            >
+              <Copy className="w-4 h-4" />
+              Copy for AI Verification
+            </button>
           </div>
           <div className="glass-elevated rounded-xl px-6 py-5 flex flex-col gap-4 mb-6">
              <div>
@@ -353,7 +445,14 @@ export default function Home({ showHistory, setShowHistory }) {
              </div>
              <div>
                <label className="block text-sm font-semibold text-slate-700 mb-1">Social Security Number (SSN)</label>
-               <input type="text" value={vaFileNumber} onChange={e=>setVaFileNumber(e.target.value)} placeholder="000-00-0000" className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2.5 text-slate-800 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20" />
+               <input 
+                 type="text" 
+                 value={vaFileNumber} 
+                 onChange={e => setVaFileNumber(formatSSN(e.target.value))} 
+                 placeholder="000-00-0000" 
+                 className={`w-full bg-slate-50 border rounded-lg px-4 py-2.5 text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500/20 ${vaFileNumber.replace(/\D/g, '').length === 9 ? 'border-slate-200 focus:border-sky-500' : 'border-red-400 focus:border-red-500 bg-red-50'}`}
+               />
+               {vaFileNumber.replace(/\D/g, '').length !== 9 && <p className="text-red-500 text-xs mt-1 font-medium">SSN must be exactly 9 digits.</p>}
              </div>
              <div className="mt-4">
                 <h3 className="text-slate-900 font-semibold mb-2">Conditions to Process:</h3>
@@ -390,6 +489,21 @@ export default function Home({ showHistory, setShowHistory }) {
                                         }
                                     }} />
                                 </label>
+                                <button onClick={() => {
+                                    const newConditions = [...conditions];
+                                    newConditions.splice(i, 1);
+                                    setConditions(newConditions);
+                                    
+                                    const newUploads = {...manualUploads};
+                                    delete newUploads[c];
+                                    setManualUploads(newUploads);
+                                    
+                                    const newLinks = {...manualLinks};
+                                    delete newLinks[c];
+                                    setManualLinks(newLinks);
+                                }} className="text-red-500 hover:text-red-700 p-1 bg-red-50 rounded" title="Delete condition">
+                                    <Trash2 className="w-4 h-4" />
+                                </button>
                             </div>
                         </div>
                         <div className="flex flex-col gap-2 mb-2">
@@ -447,10 +561,22 @@ export default function Home({ showHistory, setShowHistory }) {
                         </div>
                     </div>
                 ))}
+                <div className="mt-2">
+                    <button onClick={() => setConditions([...conditions, ''])} className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 text-sm font-semibold rounded hover:bg-slate-200 transition-colors border border-slate-200">
+                        <Plus className="w-4 h-4" />
+                        Add Condition
+                    </button>
+                </div>
              </div>
           </div>
           <div className="text-center p-8 glass rounded-2xl">
-             <button onClick={handleProcess} className="btn-primary">Generate Packets</button>
+             <button 
+                onClick={handleProcess} 
+                disabled={vaFileNumber.replace(/\D/g, '').length !== 9}
+                className={`btn-primary ${vaFileNumber.replace(/\D/g, '').length !== 9 ? 'opacity-50 cursor-not-allowed saturate-50' : ''}`}
+             >
+                Generate Packets
+             </button>
           </div>
         </section>
       )}

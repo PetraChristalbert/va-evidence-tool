@@ -31,62 +31,114 @@ async function extractText(filePath) {
   return '';
 }
 
-async function runExtraction(jobId, memoPath) {
+async function runExtraction(jobId, memoPath, memoFormat = 'old', altText = null) {
     jobs[jobId] = { status: 'processing', stage: 'extract', type: 'extract' };
     try {
-        const fullPath = memoPath ? path.join(UPLOADS_DIR, memoPath) : null;
-        const text = await extractText(fullPath);
-        
-        if (!text) {
-            jobs[jobId].status = 'done';
-            jobs[jobId].condition_packets = {
-                vet_name: "Unknown Veteran",
-                va_file_number: "",
-                illnesses_clean: ["Unknown Condition"],
-                urls: {}
-            };
-            return;
+        let text = '';
+        if (memoFormat !== 'alt') {
+            const fullPath = memoPath ? path.join(UPLOADS_DIR, memoPath) : null;
+            text = await extractText(fullPath);
+            
+            if (!text) {
+                jobs[jobId].status = 'done';
+                jobs[jobId].condition_packets = {
+                    vet_name: "Unknown Veteran",
+                    va_file_number: "",
+                    illnesses_clean: ["Unknown Condition"],
+                    urls: {}
+                };
+                return;
+            }
         }
 
-        const nameMatch = text.match(/Veteran\s+([A-Z][a-zA-Z'\-]+(?:\s+[A-Z]\.?)?\s+[A-Z][a-zA-Z'\-]+)/);
-        const vet_name = nameMatch ? nameMatch[1].trim() : "Unknown Veteran";
+        const nameMatch = text.match(/Veteran[:\s]+([A-Z][a-zA-Z'\-]+(?:\s+[A-Z]\.?)?\s+[A-Z][a-zA-Z'\-]+)/i);
+        const vet_name = nameMatch ? nameMatch[1].trim() : "";
 
         const fileNumMatch = text.match(/\b(0\d{8})\b/) || text.match(/\b(\d{3})[\s\-](\d{3})[\s\-](\d{3})\b/);
-        const va_file_number = fileNumMatch ? fileNumMatch[0].replace(/[^\d]/g, '') : "000000000";
-
-        // Tokenize the document into strict, isolated blocks by the heading.
-        const chunkRegex = /(?=Memorandum\s+in\s+Support\s+of\s+(?:a\s+)?Supplemental\s+Claim)/gi;
-        const sections = text.split(chunkRegex);
+        const va_file_number = fileNumMatch ? fileNumMatch[0].replace(/[^\d]/g, '') : "";
 
         const illnesses = new Set();
         const urls = {};
 
-        const conditionTitleRegex = /Memorandum\s+in\s+Support\s+of\s+(?:a\s+)?Supplemental\s+Claim\s+([^\n\r]+)/i;
-        // Match links and ensure it stops reading at a space or a closing bracket
-        const urlRegex = /https?:\/\/[^\s\]\)]+/g;
-
-        for (const section of sections) {
-            // Skip empty strings
-            if (!section.trim()) continue;
-
-            const titleMatch = section.match(conditionTitleRegex);
+        if (memoFormat === 'alt') {
+            try {
+                let jsonStr = altText || '[]';
+                const match = jsonStr.match(/\[[\s\S]*\]/);
+                if (match) {
+                    jsonStr = match[0];
+                }
+                const parsed = JSON.parse(jsonStr);
+                
+                if (Array.isArray(parsed)) {
+                    parsed.forEach(item => {
+                        if (item.condition) {
+                            illnesses.add(item.condition);
+                            urls[item.condition] = item.links || [];
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error('Failed to parse alt JSON text', err);
+            }
+        } else if (memoFormat === 'new') {
+            // New Document Format parsing with Anchor regex
+            const anchorRegex = /Medical\s+Research\s*\/\s*Scientific\s+Literature/gi;
+            const parts = text.split(anchorRegex);
             
-            if (titleMatch) {
-                // Clean up the extracted condition string (strip any bracketed tags like [Pact Exam Exclusion...])
-                let conditionName = titleMatch[1].trim();
-                conditionName = conditionName.replace(/\s*\[.*?\]\s*/g, '').trim();
-
+            // Loop through each part
+            for (let i = 0; i < parts.length - 1; i++) {
+                // Title is at the end of parts[i]
+                const lines = parts[i].trim().split(/\r?\n/);
+                let conditionName = '';
+                for (let j = lines.length - 1; j >= 0; j--) {
+                    if (lines[j].trim()) {
+                        conditionName = lines[j].trim();
+                        break;
+                    }
+                }
+                
+                if (!conditionName) {
+                    conditionName = `Unknown Condition ${i + 1}`;
+                }
+                
                 illnesses.add(conditionName);
-
-                // Extract links strictly within this isolated string block
-                const matchedLinks = section.match(urlRegex) || [];
+                
+                // Links are located in the subsequent part (parts[i+1])
+                const urlRegex = /https?:\/\/[^\s\]\)]+/g;
+                const matchedLinks = parts[i + 1].match(urlRegex) || [];
                 
                 if (!urls[conditionName]) {
                     urls[conditionName] = [];
                 }
-                
-                // Deduplicate links using Set
                 urls[conditionName] = [...new Set([...urls[conditionName], ...matchedLinks])];
+            }
+        } else {
+            // Old Document Format parsing
+            const chunkRegex = /(?=Memorandum\s+in\s+Support\s+of\s+(?:a\s+)?Supplemental\s+Claim)/gi;
+            const sections = text.split(chunkRegex);
+
+            const conditionTitleRegex = /Memorandum\s+in\s+Support\s+of\s+(?:a\s+)?Supplemental\s+Claim\s+([^\n\r]+)/i;
+            const urlRegex = /https?:\/\/[^\s\]\)]+/g;
+
+            for (const section of sections) {
+                if (!section.trim()) continue;
+
+                const titleMatch = section.match(conditionTitleRegex);
+                
+                if (titleMatch) {
+                    let conditionName = titleMatch[1].trim();
+                    conditionName = conditionName.replace(/\s*\[.*?\]\s*/g, '').trim();
+
+                    illnesses.add(conditionName);
+
+                    const matchedLinks = section.match(urlRegex) || [];
+                    
+                    if (!urls[conditionName]) {
+                        urls[conditionName] = [];
+                    }
+                    
+                    urls[conditionName] = [...new Set([...urls[conditionName], ...matchedLinks])];
+                }
             }
         }
         

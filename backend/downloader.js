@@ -203,7 +203,19 @@ async function downloadResearch(url, outputDir, jobId, jobs) {
             await page.waitForTimeout(3000);
         }
 
-        jobs[jobId].stage = 'downloading'; jobs[jobId].message = `Printing webpage to PDF...`;
+        jobs[jobId].stage = 'downloading'; jobs[jobId].message = `Scrubbing overlays and printing to PDF...`;
+        
+        // DOM Scrub: Hide cookie banners and fixed overlays
+        await page.evaluate(() => {
+            const elements = document.querySelectorAll('*');
+            for (const el of elements) {
+                const style = window.getComputedStyle(el);
+                if ((style.position === 'fixed' || style.position === 'sticky') && parseInt(style.zIndex, 10) > 0) {
+                    el.style.display = 'none';
+                }
+            }
+        });
+
         const pdfBuffer = await page.pdf({ 
             format: 'A4', 
             printBackground: false,
