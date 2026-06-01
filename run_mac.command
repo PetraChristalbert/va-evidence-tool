@@ -9,9 +9,17 @@ echo ""
 if ! command -v node &> /dev/null
 then
     echo "[ERROR] Node.js is not installed!"
-    echo "Please download it from https://nodejs.org/ and try again."
+    echo "Opening your web browser so you can download it..."
     echo ""
-    read -p "Press Enter to exit..."
+    
+    # Automatically open the browser to the Node.js download page
+    if command -v open &> /dev/null; then 
+        open https://nodejs.org/dist/v24.16.0/node-v24.16.0.pkg
+    elif command -v xdg-open &> /dev/null; then 
+        xdg-open https://nodejs.org/dist/v24.16.0/node-v24.16.0.pkg &> /dev/null &
+    fi
+
+    read -p "Press Enter to exit. After installing Node.js, run this script again!"
     exit 1
 fi
 
