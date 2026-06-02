@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd "$(dirname "$0")"
+
 echo "========================================================"
 echo "       VA MEDICAL EVIDENCE PROCESSING PLATFORM"
 echo "========================================================"
@@ -13,9 +15,11 @@ then
     echo ""
     
     # Automatically open the browser to the Node.js download page
-    if command -v open &> /dev/null; then 
+    if command -v open &> /dev/null;
+    then 
         open https://nodejs.org/dist/v24.16.0/node-v24.16.0.pkg
-    elif command -v xdg-open &> /dev/null; then 
+    elif command -v xdg-open &> /dev/null;
+    then 
         xdg-open https://nodejs.org/dist/v24.16.0/node-v24.16.0.pkg &> /dev/null &
     fi
 
@@ -32,10 +36,13 @@ echo "DO NOT CLOSE THIS TERMINAL while using the app!"
 echo ""
 
 # Try to automatically open the browser
-if command -v open &> /dev/null; then 
-    open http://localhost:5000
-elif command -v xdg-open &> /dev/null; then 
-    xdg-open http://localhost:5000 &> /dev/null &
+if command -v open &> /dev/null;
+then 
+    open http://localhost:5001
+elif command -v xdg-open &> /dev/null;
+then 
+    xdg-open http://localhost:5001 &> /dev/null &
 fi
 
+export PORT=5001
 npm start

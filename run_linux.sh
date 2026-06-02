@@ -13,10 +13,10 @@ then
     echo ""
     
     # Automatically open the browser to the Node.js download page
-    if command -v open &> /dev/null; then 
-        open https://nodejs.org/
-    elif command -v xdg-open &> /dev/null; then 
+    if command -v xdg-open &> /dev/null; then 
         xdg-open https://nodejs.org/ &> /dev/null &
+    elif command -v open &> /dev/null; then 
+        open https://nodejs.org/ &> /dev/null &
     fi
 
     read -p "Press Enter to exit. After installing Node.js, run this script again!"
@@ -32,10 +32,10 @@ echo "DO NOT CLOSE THIS TERMINAL while using the app!"
 echo ""
 
 # Try to automatically open the browser
-if command -v open &> /dev/null; then 
-    open http://localhost:5000
-elif command -v xdg-open &> /dev/null; then 
+if command -v xdg-open &> /dev/null; then 
     xdg-open http://localhost:5000 &> /dev/null &
+elif command -v open &> /dev/null; then 
+    open http://localhost:5000 &> /dev/null &
 fi
 
 npm start
