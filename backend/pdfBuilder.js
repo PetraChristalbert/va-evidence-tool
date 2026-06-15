@@ -6,7 +6,7 @@ async function buildConditionPacket(esfPath, researchPdfPaths, outputPath, vetNa
     try {
         // Load the ESF
         const esfBytes = fs.readFileSync(esfPath);
-        const esfDoc = await PDFDocument.load(esfBytes);
+        const esfDoc = await PDFDocument.load(esfBytes, { ignoreEncryption: true });
         
         try {
             const form = esfDoc.getForm();
@@ -171,7 +171,7 @@ async function buildConditionPacket(esfPath, researchPdfPaths, outputPath, vetNa
         for (const pdfPath of researchPdfPaths) {
             if (fs.existsSync(pdfPath)) {
                 const pdfBytes = fs.readFileSync(pdfPath);
-                const pdfDoc = await PDFDocument.load(pdfBytes);
+                const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
                 const copiedPages = await finalDoc.copyPages(pdfDoc, pdfDoc.getPageIndices());
                 copiedPages.forEach((page) => finalDoc.addPage(page));
             }
