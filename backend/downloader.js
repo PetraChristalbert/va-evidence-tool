@@ -62,7 +62,7 @@ async function downloadResearch(url, outputDir, jobId, jobs) {
             try {
                 if (!pmcid && pmid) {
                     jobs[jobId].stage = 'downloading'; jobs[jobId].message = `Checking PMC database for PMID ${pmid}...`;
-                    const convRes = await fetch(`https://www.ncbi.nlm.nih.gov/pmc/utils/idconv/v1.0/?ids=${pmid}&format=json`);
+                    const convRes = await fetch(`https://pmc.ncbi.nlm.nih.gov/tools/idconv/api/v1/articles/?ids=${pmid}&format=json`);
                     const convData = await convRes.json();
                     if (convData.records && convData.records[0] && convData.records[0].pmcid) {
                         pmcid = convData.records[0].pmcid;
