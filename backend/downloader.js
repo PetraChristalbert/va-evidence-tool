@@ -196,7 +196,8 @@ async function downloadResearch(url, outputDir, jobId, jobs) {
             }
             
             if (!solved) {
-                throw new Error('CAPTCHA not solved in time.');
+                jobs[jobId].stage = 'downloading'; jobs[jobId].message = `CAPTCHA not solved in time. Skipping.`;
+                return null;
             }
             
             jobs[jobId].stage = 'downloading'; jobs[jobId].message = `CAPTCHA solved! Continuing...`;
@@ -236,6 +237,10 @@ async function downloadResearch(url, outputDir, jobId, jobs) {
             return null;
         }
     } catch (error) {
+        if (error.message.includes('Job force stopped by user')) {
+            return null;
+        }
+        
         jobs[jobId].stage = 'downloading'; jobs[jobId].message = `Browser failed (${error.message}). Attempting Jina AI extraction...`;
         
         try {
@@ -244,6 +249,14 @@ async function downloadResearch(url, outputDir, jobId, jobs) {
             const markdown = await jinaRes.text();
             
             if (markdown && markdown.length > 50) {
+                const captchaKeywords = ['Just a moment...', 'verify you are human', 'Are you a robot', 'Checking your browser', 'Attention Required!'];
+                let jinaHitCaptcha = captchaKeywords.some(kw => markdown.toLowerCase().includes(kw.toLowerCase()));
+                
+                if (jinaHitCaptcha) {
+                    jobs[jobId].stage = 'downloading'; jobs[jobId].message = `Jina AI also hit a CAPTCHA. Skipping.`;
+                    return null;
+                }
+
                 jobs[jobId].stage = 'downloading'; jobs[jobId].message = `Extracted text via Jina, building PDF...`;
                 const browserSession = await getBrowserPage(jobId, jobs);
                 const htmlPage = browserSession.page;
